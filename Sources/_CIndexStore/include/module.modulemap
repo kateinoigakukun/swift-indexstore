@@ -1,0 +1,4 @@
+module _CIndexStore {
+    header "indexstore_functions.h"
+    export *
+}
