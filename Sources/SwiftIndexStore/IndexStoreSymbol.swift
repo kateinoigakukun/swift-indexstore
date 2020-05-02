@@ -89,12 +89,29 @@ public struct IndexStoreSymbol {
         case swift = 100
     }
 
-    public let usr: String
-    public let name: String
-    public let kind: Kind
-    public let subKind: SubKind
-    public let language: Language
+
+    @Lazy public var usr: String
+    @Lazy public var name: String
+    @Lazy public var kind: Kind
+    @Lazy public var subKind: SubKind
+    @Lazy public var language: Language
 
     let anchor: indexstore_symbol_t?
+
+    init(
+        _usr: Lazy<String>,
+        _name: Lazy<String>,
+        _kind: Lazy<Kind>,
+        _subKind: Lazy<SubKind>,
+        _language: Lazy<Language>,
+        anchor: indexstore_symbol_t?
+    ) {
+        self._usr = _usr
+        self._name = _name
+        self._kind = _kind
+        self._subKind = _subKind
+        self._language = _language
+        self.anchor = anchor
+    }
 }
 

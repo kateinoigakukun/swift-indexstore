@@ -70,17 +70,40 @@ public final class IndexStore {
     }
 
     private static func createSymbol(from symbol: indexstore_symbol_t?, lib: LibIndexStore) -> IndexStoreSymbol {
-        let symbolKind = IndexStoreSymbol.Kind(rawValue: lib.symbol_get_kind(symbol).rawValue)!
-        let symbolSubKind = IndexStoreSymbol.SubKind(rawValue: lib.symbol_get_subkind(symbol).rawValue)!
-        let symbolUsr = lib.symbol_get_usr(symbol).toSwiftString()
-        let symbolName = lib.symbol_get_name(symbol).toSwiftString()
-        let symbolLanguage = IndexStoreSymbol.Language(rawValue: lib.symbol_get_language(symbol).rawValue)!
+        let symbolKind = Lazy(wrappedValue: IndexStoreSymbol.Kind(rawValue: lib.symbol_get_kind(symbol).rawValue)!)
+        let symbolSubKind = Lazy(wrappedValue: IndexStoreSymbol.SubKind(rawValue: lib.symbol_get_subkind(symbol).rawValue)!)
+        let symbolUsr = Lazy(wrappedValue: lib.symbol_get_usr(symbol).toSwiftString())
+        let symbolName = Lazy(wrappedValue: lib.symbol_get_name(symbol).toSwiftString())
+        let symbolLanguage = Lazy(wrappedValue: IndexStoreSymbol.Language(rawValue: lib.symbol_get_language(symbol).rawValue)!)
         return IndexStoreSymbol(
-            usr: symbolUsr, name: symbolName,
-            kind: symbolKind, subKind: symbolSubKind,
-            language: symbolLanguage,
+            _usr: symbolUsr, _name: symbolName,
+            _kind: symbolKind, _subKind: symbolSubKind,
+            _language: symbolLanguage,
             anchor: symbol
         )
+    }
+
+    private static func createOccurrence(
+        from occurrence: indexstore_occurrence_t?,
+        recordPath: String,
+        isSystem: Bool,
+        lib: LibIndexStore
+    ) -> IndexStoreOccurrence {
+        let symbolRoles = Lazy(wrappedValue: IndexStoreOccurrence.Role(rawValue: lib.occurrence_get_roles(occurrence)))
+        let sym = Lazy(wrappedValue: IndexStore.createSymbol(
+            from: lib.occurrence_get_symbol(occurrence),
+            lib: lib
+        ))
+        let location = Lazy<IndexStoreOccurrence.Location>(wrappedValue: {
+            var line: UInt32 = 0
+            var column: UInt32 = 0
+            lib.occurrence_get_line_col(occurrence, &line, &column)
+            return IndexStoreOccurrence.Location(
+                path: recordPath, isSystem: isSystem,
+                line: Int64(line), column: Int64(column)
+            )
+        }())
+        return IndexStoreOccurrence(_roles: symbolRoles, _symbol: sym, _location: location, anchor: occurrence)
     }
 
     public func forEachSymbols(for record: indexstore_unit_dependency_t, _ next: (IndexStoreSymbol) throws -> Bool) throws {
@@ -110,17 +133,11 @@ public final class IndexStore {
         _ = try symbols.withContiguousMutableStorageIfAvailable { syms -> Bool in
             let fn = { self.lib.record_reader_occurrences_of_symbols_apply_f(reader, syms.baseAddress!, syms.count, nil, 0, $0, $1) }
             let result = wrapCapturingCFunction(fn) { occurrence -> IndexStoreResult<Bool, Error> in
-                let symbolRoles = IndexStoreOccurrence.Role(rawValue: lib.occurrence_get_roles(occurrence))
-                let symbol = lib.occurrence_get_symbol(occurrence)
-                let sym = IndexStore.createSymbol(from: symbol, lib: lib)
-                var line: UInt32 = 0
-                var column: UInt32 = 0
-                lib.occurrence_get_line_col(occurrence, &line, &column)
-                let location = IndexStoreOccurrence.Location(
-                    path: recordPath, isSystem: isSystem,
-                    line: Int64(line), column: Int64(column)
+                let occ = Self.createOccurrence(
+                    from: occurrence,
+                    recordPath: recordPath, isSystem: isSystem,
+                    lib: lib
                 )
-                let occ = IndexStoreOccurrence(roles: symbolRoles, symbol: sym, location: location, anchor: occurrence)
                 return IndexStoreResult(whenError: false) { try next(occ) }
             }
             return try result.get()
@@ -138,17 +155,11 @@ public final class IndexStore {
             
             let fn = { self.lib.record_reader_occurrences_apply_f(reader, $0, $1) }
             let result = wrapCapturingCFunction(fn) { occurrence -> IndexStoreResult<Bool, Error> in
-                let symbolRoles = IndexStoreOccurrence.Role(rawValue: lib.occurrence_get_roles(occurrence))
-                let symbol = lib.occurrence_get_symbol(occurrence)
-                let sym = IndexStore.createSymbol(from: symbol, lib: lib)
-                var line: UInt32 = 0
-                var column: UInt32 = 0
-                lib.occurrence_get_line_col(occurrence, &line, &column)
-                let location = IndexStoreOccurrence.Location(
-                    path: recordPath, isSystem: isSystem,
-                    line: Int64(line), column: Int64(column)
+                let occ = Self.createOccurrence(
+                    from: occurrence,
+                    recordPath: recordPath, isSystem: isSystem,
+                    lib: lib
                 )
-                let occ = IndexStoreOccurrence(roles: symbolRoles, symbol: sym, location: location, anchor: occurrence)
                 return IndexStoreResult(whenError: false) { try next(occ) }
             }
             _ = try result.get()

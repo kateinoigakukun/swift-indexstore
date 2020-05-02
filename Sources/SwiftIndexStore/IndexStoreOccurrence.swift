@@ -46,9 +46,21 @@ public struct IndexStoreOccurrence {
         public var column: Int64
     }
 
-    public let roles: Role
-    public let symbol: IndexStoreSymbol
-    public let location: Location
+    @Lazy public var roles: Role
+    @Lazy public var symbol: IndexStoreSymbol
+    @Lazy public var location: Location
 
     let anchor: indexstore_occurrence_t?
+
+    init(
+        _roles: Lazy<Role>,
+        _symbol: Lazy<IndexStoreSymbol>,
+        _location: Lazy<Location>,
+        anchor: indexstore_occurrence_t?
+    ) {
+        self._roles = _roles
+        self._symbol = _symbol
+        self._location = _location
+        self.anchor = anchor
+    }
 }
