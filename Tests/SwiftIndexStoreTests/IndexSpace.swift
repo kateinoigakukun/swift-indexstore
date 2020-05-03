@@ -22,14 +22,8 @@ class IndexSpace {
     }
 
     static func create(with toolchain: Toolchain) throws -> IndexSpace {
-        let template = "\(arc4random()).XXXXXX"
-        let dir = try template.withCString { ptr -> String in
-            let ptr = UnsafeMutablePointer(mutating: ptr)
-            guard let dir = mkdtemp(ptr) else {
-                throw Error.failedToCreateTmpDir
-            }
-            return String(cString: dir)
-        }
+        var (dir, _) = try Process.exec(bin: "/usr/bin/mktemp", arguments: ["-d"])
+        dir = dir.trimmingCharacters(in: .whitespacesAndNewlines)
         let space = IndexSpace(directoryPath: URL(fileURLWithPath: dir), toolchain: toolchain)
         try FileManager.default.createDirectory(at: space.indexStorePath, withIntermediateDirectories: false)
         return space

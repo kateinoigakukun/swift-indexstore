@@ -35,6 +35,11 @@ final class SwiftIndexStoreTests: XCTestCase {
         indexStore = try! IndexStore.open(store: space.indexStorePath, lib: lib)
     }
 
+    override class func tearDown() {
+        indexStore = nil
+        space = nil
+    }
+
     func testUnits() {
         let units = indexStore.units()
         XCTAssertTrue(units.contains(where: { $0.name.contains("ViewController") }))
