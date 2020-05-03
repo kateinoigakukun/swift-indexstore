@@ -89,7 +89,6 @@ public struct IndexStoreSymbol {
         case swift = 100
     }
 
-
     @Lazy public var usr: String
     @Lazy public var name: String
     @Lazy public var kind: Kind
@@ -114,4 +113,3 @@ public struct IndexStoreSymbol {
         self.anchor = anchor
     }
 }
-

@@ -3,16 +3,16 @@ import _CIndexStore
 
 @dynamicMemberLookup
 public struct LibIndexStore {
-    
+
     private let url: URL
     private let api: indexstore_functions_t
-    
+
     func getPath() -> String { url.path }
-    
+
     subscript<T>(dynamicMember keyPath: KeyPath<indexstore_functions_t, T>) -> T {
         api[keyPath: keyPath]
     }
-    
+
     public static func open(url: URL) throws -> LibIndexStore {
         typealias Dylib = UnsafeMutableRawPointer
 
@@ -49,11 +49,11 @@ public struct LibIndexStore {
         api.symbol_relation_get_roles = try requireSym(dylib, "indexstore_symbol_relation_get_roles")
         api.symbol_relation_get_symbol = try requireSym(dylib, "indexstore_symbol_relation_get_symbol")
         api.symbol_get_language = try requireSym(dylib, "indexstore_symbol_get_language")
-        
+
         return LibIndexStore(url: url, api: api)
 
     }
-    
+
     public static func open(toolchainDir: URL) throws -> LibIndexStore {
         let url = toolchainDir
             .appendingPathComponent("usr")
@@ -61,68 +61,20 @@ public struct LibIndexStore {
             .appendingPathComponent("libIndexStore.dylib")
         return try self.open(url: url)
     }
-    
+
     public static func open() throws -> LibIndexStore {
         let toolchainDir = try developerDir()
             .appendingPathComponent("Toolchains")
             .appendingPathComponent("XcodeDefault.xctoolchain")
         return try open(toolchainDir: toolchainDir)
     }
-    
+
     private static func developerDir() throws -> URL {
-        let process = Process()
-        process.launchPath = "/usr/bin/xcode-select"
-        process.arguments = ["--print-path"]
-        
-        let pipe = Pipe()
-        var stdoutContent: String = ""
-        pipe.fileHandleForReading.readabilityHandler = { (fh: FileHandle) -> Void in
-            let contents = fh.readDataToEndOfFile()
-            stdoutContent += String(decoding: contents, as: Unicode.UTF8.self)
-        }
-        process.standardOutput = pipe
-        process.launch()
-        process.waitUntilExit()
-        guard process.terminationStatus == 0 else {
-            throw IndexStoreError.unableGetToolchainDirectory
-        }
+        var (stdoutContent, _) = try Process.exec(
+            bin: "/usr/bin/xcode-select",
+            arguments: ["--print-path"]
+        )
         stdoutContent.removeLast()
         return URL(fileURLWithPath: stdoutContent)
-    }
-    
-    private static func createIndexStoreLib() -> Result<URL, Error> {
-        if let toolchainDir = ProcessInfo.processInfo.environment["TOOLCHAIN_DIR"] {
-            return .success(
-                URL(fileURLWithPath: toolchainDir)
-                    .appendingPathComponent("usr")
-                    .appendingPathComponent("lib")
-                    .appendingPathComponent("libIndexStore.dylib")
-            )
-        }
-        return Result {
-            let process = Process()
-            process.launchPath = "/usr/bin/xcode-select"
-            process.arguments = ["--print-path"]
-            
-            let pipe = Pipe()
-            var stdoutContent: String = ""
-            pipe.fileHandleForReading.readabilityHandler = { (fh: FileHandle) -> Void in
-                let contents = fh.readDataToEndOfFile()
-                stdoutContent += String(decoding: contents, as: Unicode.UTF8.self)
-            }
-            process.standardOutput = pipe
-            process.launch()
-            process.waitUntilExit()
-            guard process.terminationStatus == 0 else {
-                throw IndexStoreError.unableGetToolchainDirectory
-            }
-            stdoutContent.removeLast()
-            return URL(fileURLWithPath: stdoutContent)
-                .appendingPathComponent("Toolchains")
-                .appendingPathComponent("XcodeDefault.xctoolchain")
-                .appendingPathComponent("usr")
-                .appendingPathComponent("lib")
-                .appendingPathComponent("libIndexStore.dylib")
-        }
     }
 }
