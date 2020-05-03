@@ -7,10 +7,13 @@ extension Process {
     }
 
     @discardableResult
-    static func exec(bin: String, arguments: [String]) throws -> (stdout: String, stderr: String) {
+    static func exec(bin: String, arguments: [String], cwd: String? = nil) throws -> (stdout: String, stderr: String) {
         let process = Process()
         process.launchPath = bin
         process.arguments = arguments
+        if let cwd = cwd {
+            process.currentDirectoryPath = cwd
+        }
 
         let stdoutPipe = Pipe()
         let stderrPipe = Pipe()

@@ -1,0 +1,16 @@
+name: Build and run tests
+on:
+  push: {}
+  pull_request: {}
+jobs:
+  run:
+    runs-on: macOS-latest
+    name: Build and run tests
+    steps:
+    - uses: actions/checkout@master
+    - name: Xcode version
+      run: /usr/bin/xcode-select --print-path
+    - name: Build
+      run: swift build
+    - name: Test
+      run: swift test

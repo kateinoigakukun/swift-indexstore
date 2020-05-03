@@ -42,7 +42,8 @@ class IndexSpace {
     func index(at path: URL) throws {
         try Process.exec(
             bin: "/usr/bin/xcrun",
-            arguments: [toolchain.swiftc.path, "-c", path.path, "-index-store-path", indexStorePath.path]
+            arguments: [toolchain.swiftc.path, "-c", path.path, "-index-store-path", indexStorePath.path],
+            cwd: directoryPath.path
         )
     }
 
