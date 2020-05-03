@@ -1,10 +1,6 @@
 import _CIndexStore
 import Foundation
 
-public struct IndexStoreUnit {
-    public let name: String
-}
-
 public final class IndexStore {
 
     let store: indexstore_t
