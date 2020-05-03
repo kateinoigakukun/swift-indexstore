@@ -3,8 +3,8 @@ import Foundation
 enum IndexStoreError: LocalizedError {
     case internalError(String)
     case unableOpen(URL)
-    case unableCreateUnintReader(String)
-    case unableCreateRecordReader(String)
+    case unableCreateUnintReader(String?)
+    case unableCreateRecordReader(String?)
     case missingSymbol(String)
     case unableGetErrorDescription
     case unableGetToolchainDirectory
@@ -16,9 +16,9 @@ enum IndexStoreError: LocalizedError {
         case .unableOpen(let path):
             return "Unable to open store at \(path.path)"
         case .unableCreateUnintReader(let name):
-            return "Unable to create unit reader for \(name)"
+            return "Unable to create unit reader for \(name ?? "nil")"
         case .unableCreateRecordReader(let name):
-            return "Unable to create record reader for \(name)"
+            return "Unable to create record reader for \(name ?? "nil")"
         case .missingSymbol(let symbol):
             return "Missing required symbol: \(symbol)"
         case .unableGetErrorDescription:

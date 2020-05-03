@@ -8,9 +8,20 @@ let package = Package(
         .library(
             name: "SwiftIndexStore",
             targets: ["SwiftIndexStore"]),
+        .executable(
+            name: "index-dump-tool",
+            targets: ["IndexDumpTool"]),
     ],
-    dependencies: [],
+    dependencies: [
+        .package(name: "swift-argument-parser", url: "https://github.com/apple/swift-argument-parser", .upToNextMinor(from: "0.0.1")),
+    ],
     targets: [
+        .target(
+            name: "IndexDumpTool",
+            dependencies: [
+                .target(name: "SwiftIndexStore"),
+                .product(name: "ArgumentParser", package: "swift-argument-parser"),
+            ]),
         .target(
             name: "SwiftIndexStore",
             dependencies: [

@@ -1,0 +1,1 @@
+IndexDumpTool.main()

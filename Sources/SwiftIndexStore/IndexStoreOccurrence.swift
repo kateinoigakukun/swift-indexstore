@@ -67,7 +67,7 @@ public struct IndexStoreOccurrence {
     }
 
     public struct Location: Equatable {
-        public var path: String
+        public var path: String?
         public var isSystem: Bool
         public var line: Int64
         public var column: Int64

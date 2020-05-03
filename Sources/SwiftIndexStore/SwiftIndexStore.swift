@@ -127,7 +127,7 @@ public final class IndexStore {
 
         typealias Ctx = Context<(
             next: (IndexStoreOccurrence) throws -> Bool,
-            recordPath: String,
+            recordPath: String?,
             isSystem: Bool
         )>
 
@@ -169,7 +169,7 @@ public final class IndexStore {
         }
         typealias Ctx = Context<(
             next: (IndexStoreOccurrence) throws -> Bool,
-            recordPath: String,
+            recordPath: String?,
             isSystem: Bool
         )>
 
@@ -257,7 +257,7 @@ public final class IndexStore {
 
     private static func createOccurrence(
         from occurrence: indexstore_occurrence_t?,
-        recordPath: String,
+        recordPath: String?,
         isSystem: Bool,
         lib: LibIndexStore
     ) -> IndexStoreOccurrence {
@@ -309,8 +309,8 @@ extension Bool {
 }
 
 extension indexstore_string_ref_t {
-    fileprivate func toSwiftString() -> String {
-        guard data != nil else { return "invalid string" }
+    fileprivate func toSwiftString() -> String? {
+        guard data != nil else { return nil }
         return String(
             bytesNoCopy: UnsafeMutableRawPointer(mutating: data),
             length: length,

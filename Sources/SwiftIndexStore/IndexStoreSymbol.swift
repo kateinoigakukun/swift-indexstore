@@ -105,8 +105,8 @@ public struct IndexStoreSymbol {
         case swift = 100
     }
 
-    public var usr: String
-    public var name: String
+    public var usr: String?
+    public var name: String?
     public var kind: Kind
     public var subKind: SubKind
     public var language: Language
