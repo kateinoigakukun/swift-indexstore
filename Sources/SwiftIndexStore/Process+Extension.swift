@@ -18,14 +18,14 @@ extension Process {
         process.standardError = stderrPipe
         process.launch()
         process.waitUntilExit()
-        
+
         if process.terminationReason != .exit || process.terminationStatus != 0 {
             throw ProcessError.nonZeroExit(
                 process.terminationReason, process.terminationStatus,
                 command: ([bin] + arguments).joined(separator: " ")
             )
         }
-        
+
         let stdoutData = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
         guard let stdoutContent = String(data: stdoutData, encoding: .utf8) else {
             throw ProcessError.invalidUTF8Output(stdoutData,
@@ -36,7 +36,7 @@ extension Process {
             throw ProcessError.invalidUTF8Output(stderrData,
                                                  command: ([bin] + arguments).joined(separator: " "))
         }
-        
+
         return (stdoutContent, stderrContent)
     }
 }

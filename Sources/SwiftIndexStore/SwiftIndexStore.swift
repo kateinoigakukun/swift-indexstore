@@ -30,8 +30,7 @@ public final class IndexStore {
         }
         return IndexStore(store: store, lib: lib)
     }
-    
-    
+
     fileprivate class Context<T> {
         let lib: LibIndexStore
         var content: T
@@ -158,13 +157,13 @@ public final class IndexStore {
         guard let reader = try lib.throwsfy({ lib.record_reader_create(store, recordName, &$0) }) else {
             throw IndexStoreError.unableCreateRecordReader(recordName)
         }
-        
+
         typealias Ctx = Context<(
             next: (IndexStoreOccurrence) throws -> Bool,
             recordPath: String,
             isSystem: Bool
         )>
-        
+
         try withoutActuallyEscaping(next) { next in
             let handler = Ctx((next, recordPath, isSystem), lib: lib)
             let ctx = Unmanaged.passUnretained(handler).toOpaque()
@@ -205,7 +204,7 @@ public final class IndexStore {
                 recordPath: String,
                 isSystem: Bool
             )>
-            
+
             try withoutActuallyEscaping(next) { next in
                 let handler = Ctx((next, recordPath, isSystem), lib: lib)
                 let ctx = Unmanaged.passUnretained(handler).toOpaque()
