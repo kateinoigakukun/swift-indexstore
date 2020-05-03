@@ -1,7 +1,7 @@
 import _CIndexStore
 
 public struct IndexStoreOccurrence {
-    public struct Role: OptionSet, Hashable {
+    public struct Role: OptionSet, Hashable, CustomStringConvertible, OptionSetDisplayable {
 
         public let rawValue: UInt64
 
@@ -37,6 +37,33 @@ public struct IndexStoreOccurrence {
         init(rawValue: indexstore_symbol_role_t) {
             self.rawValue = UInt64(rawValue.rawValue)
         }
+
+        static let debugDescriptors: [(option: Role, name: String)] = [
+            (.declaration, "declaration"),
+            (.definition, "definition"),
+            (.reference, "reference"),
+            (.read, "read"),
+            (.write, "write"),
+            (.call, "call"),
+            (.`dynamic`, "dynamic"),
+            (.addressOf, "addressOf"),
+            (.implicit, "implicit"),
+
+            (.childOf, "childOf"),
+            (.baseOf, "baseOf"),
+            (.overrideOf, "overrideOf"),
+            (.receivedBy, "receivedBy"),
+            (.calledBy, "calledBy"),
+            (.extendedBy, "extendedBy"),
+            (.accessorOf, "accessorOf"),
+            (.containedBy, "containedBy"),
+            (.ibTypeOf, "ibTypeOf"),
+            (.specializationOf, "specializationOf")
+        ]
+
+        public var description: String {
+            "Roles(\(dumpOptions()))"
+        }
     }
 
     public struct Location: Equatable {
@@ -46,21 +73,10 @@ public struct IndexStoreOccurrence {
         public var column: Int64
     }
 
-    @Lazy public var roles: Role
-    @Lazy public var symbol: IndexStoreSymbol
-    @Lazy public var location: Location
+    public var roles: Role
+    public var symbol: IndexStoreSymbol
+    public var location: Location
 
     let anchor: indexstore_occurrence_t?
 
-    init(
-        _roles: Lazy<Role>,
-        _symbol: Lazy<IndexStoreSymbol>,
-        _location: Lazy<Location>,
-        anchor: indexstore_occurrence_t?
-    ) {
-        self._roles = _roles
-        self._symbol = _symbol
-        self._location = _location
-        self.anchor = anchor
-    }
 }

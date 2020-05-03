@@ -6,6 +6,8 @@ class IndexSpace {
     let directoryPath: URL
     let toolchain: Toolchain
 
+    var sources: [URL] = []
+
     var indexStorePath: URL {
         directoryPath.appendingPathComponent("IndexStore")
     }
@@ -33,16 +35,27 @@ class IndexSpace {
         return space
     }
 
-    func index(name: String, sourceCode: String) throws {
+    func addSource(name: String, sourceCode: String) throws {
         let filePath = directoryPath.appendingPathComponent(name)
         try sourceCode.write(toFile: filePath.path, atomically: true, encoding: .utf8)
-        try index(at: filePath)
+        sources.append(filePath)
     }
 
-    func index(at path: URL) throws {
+    func index() throws {
+        for source in sources {
+            try index(at: source)
+        }
+    }
+    private func index(at path: URL) throws {
         try Process.exec(
-            bin: "/usr/bin/xcrun",
-            arguments: [toolchain.swiftc.path, "-c", path.path, "-index-store-path", indexStorePath.path],
+            bin: toolchain.swiftc.path,
+            arguments: [
+                "-frontend", "-c", "-primary-file", path.path]
+                + sources.filter({ $0 != path }).map { $0.path }
+                + [
+                    "-index-store-path", indexStorePath.path,
+                    "-sdk", toolchain.sdkPath.path
+            ],
             cwd: directoryPath.path
         )
     }

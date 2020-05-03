@@ -6,13 +6,13 @@ extension SwiftIndexStoreTests {
     //   `swift test --generate-linuxmain`
     // to regenerate.
     static let __allTests__SwiftIndexStoreTests = [
-        ("testExample", testExample),
+        ("testExample", testExample)
     ]
 }
 
 public func __allTests() -> [XCTestCaseEntry] {
     return [
-        testCase(SwiftIndexStoreTests.__allTests__SwiftIndexStoreTests),
+        testCase(SwiftIndexStoreTests.__allTests__SwiftIndexStoreTests)
     ]
 }
 #endif

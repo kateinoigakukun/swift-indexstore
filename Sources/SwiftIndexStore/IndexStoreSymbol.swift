@@ -60,7 +60,7 @@ public struct IndexStoreSymbol {
         case swiftAccessorModify = 1015
     }
 
-    public struct Property: OptionSet, Hashable {
+    public struct Property: OptionSet, Hashable, OptionSetDisplayable, CustomStringConvertible {
         public let rawValue: UInt32
 
         public static let generic = Property(rawValue: INDEXSTORE_SYMBOL_PROPERTY_GENERIC)
@@ -80,6 +80,22 @@ public struct IndexStoreSymbol {
         init(rawValue: indexstore_symbol_property_t) {
             self.rawValue = rawValue.rawValue
         }
+
+        static let debugDescriptors: [(option: IndexStoreSymbol.Property, name: String)] = [
+            (.generic, "generic"),
+            (.templatePartialSpecialization, "templatePartialSpecialization"),
+            (.templateSpecialization, "templateSpecialization"),
+            (.unittest, "unittest"),
+            (.ibAnnotated, "ibAnnotated"),
+            (.ibOutletCollection, "ibOutletCollection"),
+            (.gkinspectable, "gkinspectable"),
+            (.local, "local"),
+            (.protocolInterface, "protocolInterface")
+        ]
+
+        public var description: String {
+            "Property(\(dumpOptions()))"
+        }
     }
 
     public enum Language: UInt32 {
@@ -89,27 +105,11 @@ public struct IndexStoreSymbol {
         case swift = 100
     }
 
-    @Lazy public var usr: String
-    @Lazy public var name: String
-    @Lazy public var kind: Kind
-    @Lazy public var subKind: SubKind
-    @Lazy public var language: Language
+    public var usr: String
+    public var name: String
+    public var kind: Kind
+    public var subKind: SubKind
+    public var language: Language
 
     let anchor: indexstore_symbol_t?
-
-    init(
-        _usr: Lazy<String>,
-        _name: Lazy<String>,
-        _kind: Lazy<Kind>,
-        _subKind: Lazy<SubKind>,
-        _language: Lazy<Language>,
-        anchor: indexstore_symbol_t?
-    ) {
-        self._usr = _usr
-        self._name = _name
-        self._kind = _kind
-        self._subKind = _subKind
-        self._language = _language
-        self.anchor = anchor
-    }
 }

@@ -2,7 +2,10 @@ import Foundation
 
 extension Process {
     enum ProcessError: Error {
-        case nonZeroExit(TerminationReason, Int32, command: String)
+        case nonZeroExit(
+            TerminationReason, Int32, command: String,
+            stdout: String, stderr: String
+        )
         case invalidUTF8Output(Data, command: String)
     }
 
@@ -22,13 +25,6 @@ extension Process {
         process.launch()
         process.waitUntilExit()
 
-        if process.terminationReason != .exit || process.terminationStatus != 0 {
-            throw ProcessError.nonZeroExit(
-                process.terminationReason, process.terminationStatus,
-                command: ([bin] + arguments).joined(separator: " ")
-            )
-        }
-
         let stdoutData = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
         guard let stdoutContent = String(data: stdoutData, encoding: .utf8) else {
             throw ProcessError.invalidUTF8Output(stdoutData,
@@ -38,6 +34,14 @@ extension Process {
         guard let stderrContent = String(data: stderrData, encoding: .utf8) else {
             throw ProcessError.invalidUTF8Output(stderrData,
                                                  command: ([bin] + arguments).joined(separator: " "))
+        }
+
+        if process.terminationReason != .exit || process.terminationStatus != 0 {
+            throw ProcessError.nonZeroExit(
+                process.terminationReason, process.terminationStatus,
+                command: ([bin] + arguments).joined(separator: " "),
+                stdout: stdoutContent, stderr: stderrContent
+            )
         }
 
         return (stdoutContent, stderrContent)
