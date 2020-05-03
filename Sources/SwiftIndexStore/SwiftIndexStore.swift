@@ -208,6 +208,24 @@ public final class IndexStore {
 
     // - MARK: Private
 
+    private static func createUnitDependency(from dependency: indexstore_unit_dependency_t, lib: LibIndexStore) -> IndexStoreUnit.Dependency {
+        let name = Lazy(wrappedValue: lib.unit_dependency_get_name(dependency).toSwiftString())
+        let filePath = Lazy(wrappedValue: lib.unit_dependency_get_filepath(dependency).toSwiftString())
+        let moduleName = Lazy(wrappedValue: lib.unit_dependency_get_modulename(dependency).toSwiftString())
+        let isSystem = Lazy(wrappedValue: lib.unit_dependency_is_system(dependency))
+        switch lib.unit_dependency_get_kind(dependency) {
+        case INDEXSTORE_UNIT_DEPENDENCY_RECORD:
+            return .record(IndexStoreRecord(
+                _name: name, _filePath: filePath,
+                _isSystem: isSystem, _moduleName: moduleName,
+                anchor: dependency
+            ))
+        case INDEXSTORE_UNIT_DEPENDENCY_UNIT: return .unit
+        case INDEXSTORE_UNIT_DEPENDENCY_FILE: return .file
+        default: fatalError("unreachable")
+        }
+    }
+
     private static func createSymbol(from symbol: indexstore_symbol_t?, lib: LibIndexStore) -> IndexStoreSymbol {
         let symbolKind = Lazy(wrappedValue: IndexStoreSymbol.Kind(rawValue: lib.symbol_get_kind(symbol).rawValue)!)
         let symbolSubKind = Lazy(wrappedValue: IndexStoreSymbol.SubKind(rawValue: lib.symbol_get_subkind(symbol).rawValue)!)
