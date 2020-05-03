@@ -14,11 +14,7 @@ class ViewController {
         )
         let lib = try LibIndexStore.open()
         let indexStore = try IndexStore.open(store: space.indexStorePath, lib: lib)
-        var units: [IndexStoreUnit] = []
-        indexStore.forEachUnits { unit -> Bool in
-            units.append(unit)
-            return true
-        }
+        let units = indexStore.units()
         XCTAssertTrue(units.contains(where: { $0.name.contains("ViewController") }))
     }
 }
