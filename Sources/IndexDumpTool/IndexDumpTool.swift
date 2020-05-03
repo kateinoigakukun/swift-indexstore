@@ -8,9 +8,6 @@ struct IndexDumpTool: ParsableCommand {
         @Option(transform: URL.init(fileURLWithPath: ))
         var indexStorePath: URL
 
-        @Argument(transform: URL.init(fileURLWithPath: ))
-        var filePath: URL?
-
         func getIndexStore() throws -> IndexStore {
             try IndexStore.open(store: indexStorePath, lib: .open())
         }
