@@ -42,25 +42,25 @@ final class SwiftIndexStoreTests: XCTestCase {
 
     func testUnits() {
         let units = indexStore.units()
-        XCTAssertTrue(units.contains(where: { $0.name.contains("ViewController") }))
-        XCTAssertTrue(units.contains(where: { $0.name.contains("ViewModel") }))
+        XCTAssertTrue(units.contains(where: { $0.name?.contains("ViewController") ?? false }))
+        XCTAssertTrue(units.contains(where: { $0.name?.contains("ViewModel") ?? false }))
     }
 
     func testDependency() throws {
-        let unit = indexStore.units().first(where: { $0.name.contains("ViewController") })!
+        let unit = indexStore.units().first(where: { $0.name?.contains("ViewController") ?? false })!
         let dependencies = try indexStore.recordDependencies(for: unit)
         XCTAssertNotNil(dependencies
             .compactMap { $0.record }
-            .first(where: { $0.filePath.contains("ViewController.swift") })
+            .first(where: { $0.filePath?.contains("ViewController.swift") ?? false })
         )
     }
 
     func testSymbols() throws {
-        let unit = indexStore.units().first(where: { $0.name.contains("ViewController") })!
+        let unit = indexStore.units().first(where: { $0.name?.contains("ViewController") ?? false })!
         let dependencies = try indexStore.recordDependencies(for: unit)
         let record = try XCTUnwrap(dependencies
             .compactMap { $0.record }
-            .first(where: { $0.filePath.contains("ViewController.swift") })
+            .first(where: { $0.filePath?.contains("ViewController.swift") ?? false })
         )
         let symbols = try indexStore.symbols(for: record)
 
@@ -70,15 +70,15 @@ final class SwiftIndexStoreTests: XCTestCase {
             "load()", "print(_:separator:terminator:)",
             "name"
         ]
-        XCTAssertEqual(expected.subtracting(symbols.map(\.name)), [])
+        XCTAssertEqual(expected.subtracting(symbols.compactMap(\.name)), [])
     }
 
     func testOccurrences() throws {
-        let unit = indexStore.units().first(where: { $0.name.contains("ViewController") })!
+        let unit = indexStore.units().first(where: { $0.name?.contains("ViewController") ?? false })!
         let dependencies = try indexStore.recordDependencies(for: unit)
         let record = try XCTUnwrap(dependencies
             .compactMap { $0.record }
-            .first(where: { $0.filePath.contains("ViewController.swift") })
+            .first(where: { $0.filePath?.contains("ViewController.swift") ?? false })
         )
         let occs = try indexStore.occurrences(for: record)
         let actual = occs.map { (line: $0.location.line, column: $0.location.column, symbol: $0.symbol.name) }
@@ -109,11 +109,11 @@ final class SwiftIndexStoreTests: XCTestCase {
     }
 
     func testOccurrencesForSymbol() throws {
-        let unit = indexStore.units().first(where: { $0.name.contains("ViewController") })!
+        let unit = indexStore.units().first(where: { $0.name!.contains("ViewController") })!
         let dependencies = try indexStore.recordDependencies(for: unit)
         let record = try XCTUnwrap(dependencies
             .compactMap { $0.record }
-            .first(where: { $0.filePath.contains("ViewController.swift") })
+            .first(where: { $0.filePath!.contains("ViewController.swift") })
         )
 
         let expected = [
@@ -129,7 +129,7 @@ final class SwiftIndexStoreTests: XCTestCase {
         ]
 
         try indexStore.forEachSymbols(for: record) { symbol in
-            guard let expectedSet = expected[symbol.name] else { return true }
+            guard let expectedSet = expected[symbol.name!] else { return true }
             let occs = try indexStore.occurrences(for: record, symbols: [symbol], relatedSymbols: [])
             for expected in expectedSet {
                 let found = occs.contains(where: {
@@ -144,11 +144,11 @@ final class SwiftIndexStoreTests: XCTestCase {
     }
 
     func testRelations() throws {
-        let unit = indexStore.units().first(where: { $0.name.contains("ViewController") })!
+        let unit = indexStore.units().first(where: { $0.name!.contains("ViewController") })!
         let dependencies = try indexStore.recordDependencies(for: unit)
         let record = try XCTUnwrap(dependencies
             .compactMap { $0.record }
-            .first(where: { $0.filePath.contains("ViewController.swift") })
+            .first(where: { $0.filePath!.contains("ViewController.swift") })
         )
 
         typealias Expected = (
