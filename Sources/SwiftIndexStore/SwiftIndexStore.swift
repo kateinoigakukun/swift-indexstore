@@ -5,10 +5,6 @@ public struct IndexStoreUnit {
     public let name: String
 }
 
-public struct IndexStoreSymbolRef {
-    fileprivate let anchor: indexstore_symbol_t?
-}
-
 public final class IndexStore {
 
     let store: indexstore_t
@@ -110,7 +106,7 @@ public final class IndexStore {
         }
     }
 
-    public func forEachOccurrences(for record: indexstore_unit_dependency_t, symbol: IndexStoreSymbolRef,
+    public func forEachOccurrences(for record: indexstore_unit_dependency_t, symbol: IndexStoreSymbol,
                             _ next: (IndexStoreOccurrence) throws -> Bool) throws {
         let recordName = lib.unit_dependency_get_name(record).toSwiftString()
         let recordPath = lib.unit_dependency_get_filepath(record).toSwiftString()
@@ -198,8 +194,11 @@ public final class IndexStore {
             _ = lib.occurrence_relations_apply_f(occ.anchor, ctx) { ctx, relation -> Bool in
                 let ctx = Unmanaged<Ctx>.fromOpaque(ctx!).takeUnretainedValue()
                 let roles = Lazy(wrappedValue: IndexStoreOccurrence.Role(rawValue: ctx.lib.symbol_relation_get_roles(relation)))
-                let symbol = Lazy(wrappedValue: IndexStoreSymbolRef(anchor: ctx.lib.symbol_relation_get_symbol(relation)))
-                let rel = IndexStoreRelation(_roles: roles, _symbolRef: symbol)
+                let symbol = Lazy(wrappedValue: IndexStore.createSymbol(
+                    from: ctx.lib.symbol_relation_get_symbol(relation),
+                    lib: ctx.lib
+                ))
+                let rel = IndexStoreRelation(_roles: roles, _symbol: symbol)
                 do { return try ctx.content(rel) } catch {
                     ctx.error = error
                     return false
@@ -209,10 +208,6 @@ public final class IndexStore {
                 throw error
             }
         }
-    }
-
-    public func getSymbol(for symRef: IndexStoreSymbolRef) -> IndexStoreSymbol {
-        return Self.createSymbol(from: symRef.anchor, lib: lib)
     }
 
     // - MARK: Private

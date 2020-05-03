@@ -1,12 +1,12 @@
 public struct IndexStoreRelation {
     @Lazy public var roles: IndexStoreOccurrence.Role
-    @Lazy public var symbolRef: IndexStoreSymbolRef
+    @Lazy public var symbol: IndexStoreSymbol
 
     init(
         _roles: Lazy<IndexStoreOccurrence.Role>,
-        _symbolRef: Lazy<IndexStoreSymbolRef>
+        _symbol: Lazy<IndexStoreSymbol>
     ) {
         self._roles = _roles
-        self._symbolRef = _symbolRef
+        self._symbol = _symbol
     }
 }
