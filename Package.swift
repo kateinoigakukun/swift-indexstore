@@ -13,7 +13,7 @@ let package = Package(
             targets: ["IndexDumpTool"]),
     ],
     dependencies: [
-        .package(name: "swift-argument-parser", url: "https://github.com/apple/swift-argument-parser", .upToNextMinor(from: "0.0.1")),
+        .package(name: "swift-argument-parser", url: "https://github.com/apple/swift-argument-parser", .upToNextMinor(from: "0.3.0")),
     ],
     targets: [
         .target(
