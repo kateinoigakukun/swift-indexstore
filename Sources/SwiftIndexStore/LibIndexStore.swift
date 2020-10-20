@@ -28,6 +28,7 @@ public struct LibIndexStore {
         api.store_create = try requireSym(dylib, "indexstore_store_create")
         api.store_units_apply_f = try requireSym(dylib, "indexstore_store_units_apply_f")
         api.unit_reader_dependencies_apply_f = try requireSym(dylib, "indexstore_unit_reader_dependencies_apply_f")
+        api.unit_reader_is_system_unit = try requireSym(dylib, "indexstore_unit_reader_is_system_unit")
         api.unit_dependency_get_kind = try requireSym(dylib, "indexstore_unit_dependency_get_kind")
         api.unit_reader_create = try requireSym(dylib, "indexstore_unit_reader_create")
         api.unit_dependency_get_name = try requireSym(dylib, "indexstore_unit_dependency_get_name")

@@ -28,7 +28,10 @@ public final class IndexStore {
         }
     }
 
-    public func units() -> [IndexStoreUnit] { collect(forEachFn: { forEachUnits($0) }) }
+    public func units(includeSystem: Bool = true) -> [IndexStoreUnit] {
+        collect(forEachFn: { forEachUnits(includeSystem: includeSystem, $0) })
+    }
+
     public func recordDependencies(for unit: IndexStoreUnit) throws -> [IndexStoreUnit.Dependency] {
         try collect(forEachFn: { try forEachRecordDependencies(for: unit, $0) })
     }
@@ -53,28 +56,29 @@ public final class IndexStore {
 
     // - MARK: ForEach Functions
 
-    public func forEachUnits(_ next: (IndexStoreUnit) throws -> Bool) rethrows {
-        typealias Ctx = Context<(IndexStoreUnit) throws -> Bool>
-        try withoutActuallyEscaping(next) { next in
-            let handler = Ctx(next, lib: lib)
-            let ctx = Unmanaged.passUnretained(handler).toOpaque()
-            _ = lib.store_units_apply_f(store, false.bit, ctx) { ctx, unitName -> Bool in
-                let ctx = Unmanaged<Ctx>.fromOpaque(ctx!).takeUnretainedValue()
-                let unit = IndexStoreUnit(name: unitName.toSwiftString())
-                do { return try ctx.content(unit) } catch {
-                    ctx.error = error
-                    return false
+    public func forEachUnits(includeSystem: Bool = true, _ next: (IndexStoreUnit) throws -> Bool) rethrows {
+        if includeSystem {
+            try _forEachUnits(next)
+        } else {
+            try _forEachUnits { unit in
+                guard let reader = try lib.throwsfy({ lib.unit_reader_create(store, unit.name, &$0) }) else {
+                    throw IndexStoreError.unableCreateUnitReader(unit.name)
                 }
-            }
-            if let error = handler.error {
-                throw error
+
+                let isSystem = lib.unit_reader_is_system_unit(reader)
+
+                if !isSystem {
+                    return try next(unit)
+                }
+
+                return true
             }
         }
     }
 
     public func forEachRecordDependencies(for unit: IndexStoreUnit, _ next: (IndexStoreUnit.Dependency) throws -> Bool) throws {
         guard let reader = try lib.throwsfy({ lib.unit_reader_create(store, unit.name, &$0) }) else {
-            throw IndexStoreError.unableCreateUnintReader(unit.name)
+            throw IndexStoreError.unableCreateUnitReader(unit.name)
         }
         typealias Ctx = Context<((IndexStoreUnit.Dependency) throws -> Bool)>
         try withoutActuallyEscaping(next) { next in
@@ -220,6 +224,25 @@ public final class IndexStore {
     }
 
     // - MARK: Private
+
+    private func _forEachUnits(_ next: (IndexStoreUnit) throws -> Bool) rethrows {
+        typealias Ctx = Context<(IndexStoreUnit) throws -> Bool>
+        try withoutActuallyEscaping(next) { next in
+            let handler = Ctx(next, lib: lib)
+            let ctx = Unmanaged.passUnretained(handler).toOpaque()
+            _ = lib.store_units_apply_f(store, false.bit, ctx) { ctx, unitName -> Bool in
+                let ctx = Unmanaged<Ctx>.fromOpaque(ctx!).takeUnretainedValue()
+                let unit = IndexStoreUnit(name: unitName.toSwiftString())
+                do { return try ctx.content(unit) } catch {
+                    ctx.error = error
+                    return false
+                }
+            }
+            if let error = handler.error {
+                throw error
+            }
+        }
+    }
 
     private static func createUnitDependency(from dependency: indexstore_unit_dependency_t?, lib: LibIndexStore) -> IndexStoreUnit.Dependency {
         let name = lib.unit_dependency_get_name(dependency).toSwiftString()
