@@ -27,7 +27,7 @@ public struct IndexStoreSymbol {
         case staticProperty = 21
         case constructor = 22
         case destructor = 23
-        case conversionDunction = 24
+        case conversionFunction = 24
         case parameter = 25
         case using = 26
         case commentTag = 1000
