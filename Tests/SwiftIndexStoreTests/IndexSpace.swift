@@ -40,7 +40,11 @@ class IndexSpace {
             try index(at: source)
         }
     }
-    private func index(at path: URL) throws {
+    private func index(at path: URL, file: String = #file) throws {
+        let fileURL = URL(fileURLWithPath: file)
+        let testsIndex = fileURL.pathComponents.firstIndex(of: "Tests") ?? 0
+        let testSystemModulePath = (fileURL.pathComponents[0...testsIndex] + ["TestSystemModule", "include"]).joined(separator: "/").dropFirst()
+
         try Process.exec(
             bin: toolchain.swiftc.path,
             arguments: [
@@ -48,7 +52,8 @@ class IndexSpace {
                 + sources.filter({ $0 != path }).map { $0.path }
                 + [
                     "-index-store-path", indexStorePath.path,
-                    "-sdk", toolchain.sdkPath.path
+                    "-sdk", toolchain.sdkPath.path,
+                    "-Xcc", "-I\(testSystemModulePath)"
             ],
             cwd: directoryPath.path
         )
