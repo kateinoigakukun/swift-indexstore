@@ -54,6 +54,11 @@ public final class IndexStore {
         collect(forEachFn: { forEachRelations(for: occ, $0) })
     }
 
+    public func mainFilePath(for unit: IndexStoreUnit) throws -> String? {
+        let reader = try createUnitReader(for: unit)
+        return lib.unit_reader_get_main_file(reader).toSwiftString()
+    }
+
     // - MARK: ForEach Functions
 
     public func forEachUnits(includeSystem: Bool = true, _ next: (IndexStoreUnit) throws -> Bool) rethrows {
@@ -61,10 +66,7 @@ public final class IndexStore {
             try _forEachUnits(next)
         } else {
             try _forEachUnits { unit in
-                guard let reader = try lib.throwsfy({ lib.unit_reader_create(store, unit.name, &$0) }) else {
-                    throw IndexStoreError.unableCreateUnitReader(unit.name)
-                }
-
+                let reader = try createUnitReader(for: unit)
                 let isSystem = lib.unit_reader_is_system_unit(reader)
 
                 if !isSystem {
@@ -77,9 +79,7 @@ public final class IndexStore {
     }
 
     public func forEachRecordDependencies(for unit: IndexStoreUnit, _ next: (IndexStoreUnit.Dependency) throws -> Bool) throws {
-        guard let reader = try lib.throwsfy({ lib.unit_reader_create(store, unit.name, &$0) }) else {
-            throw IndexStoreError.unableCreateUnitReader(unit.name)
-        }
+        let reader = try createUnitReader(for: unit)
         typealias Ctx = Context<((IndexStoreUnit.Dependency) throws -> Bool)>
         try withoutActuallyEscaping(next) { next in
             let handler = Ctx(next, lib: lib)
@@ -224,6 +224,14 @@ public final class IndexStore {
     }
 
     // - MARK: Private
+
+    private func createUnitReader(for unit: IndexStoreUnit) throws -> indexstore_unit_reader_t {
+        guard let reader = try lib.throwsfy({ lib.unit_reader_create(store, unit.name, &$0) }) else {
+            throw IndexStoreError.unableCreateUnitReader(unit.name)
+        }
+
+        return reader
+    }
 
     private func _forEachUnits(_ next: (IndexStoreUnit) throws -> Bool) rethrows {
         typealias Ctx = Context<(IndexStoreUnit) throws -> Bool>

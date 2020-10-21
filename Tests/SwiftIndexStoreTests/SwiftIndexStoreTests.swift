@@ -52,6 +52,13 @@ final class SwiftIndexStoreTests: XCTestCase {
         XCTAssertFalse(unitsWithoutSystem.contains(where: { $0.name?.contains("TestSystemModule") ?? true }))
     }
 
+    func testUnitMainFilePath() throws {
+        let units = indexStore.units()
+        let unit = try XCTUnwrap(units.first { $0.name?.contains("ViewController") ?? false })
+        let path = try XCTUnwrap(indexStore.mainFilePath(for: unit))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: path))
+    }
+
     func testDependency() throws {
         let unit = indexStore.units().first(where: { $0.name?.contains("ViewController") ?? false })!
         let dependencies = try indexStore.recordDependencies(for: unit)
