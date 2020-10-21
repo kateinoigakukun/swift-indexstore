@@ -1,0 +1,4 @@
+module TestSystemModule [system] {
+    header "test_system_module.h"
+    export *
+}

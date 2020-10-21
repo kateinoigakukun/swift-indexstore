@@ -30,6 +30,8 @@ final class SwiftIndexStoreTests: XCTestCase {
           let name: String = ""
         }
         """)
+        try! space.addSource(name: "TestSystemImport.swift",
+                             sourceCode: "import TestSystemModule")
         try! space.index()
         let lib = try! LibIndexStore.open()
         indexStore = try! IndexStore.open(store: space.indexStorePath, lib: lib)
@@ -41,9 +43,13 @@ final class SwiftIndexStoreTests: XCTestCase {
     }
 
     func testUnits() {
-        let units = indexStore.units()
-        XCTAssertTrue(units.contains(where: { $0.name?.contains("ViewController") ?? false }))
-        XCTAssertTrue(units.contains(where: { $0.name?.contains("ViewModel") ?? false }))
+        let unitsWithSystem = indexStore.units(includeSystem: true)
+        XCTAssertTrue(unitsWithSystem.contains(where: { $0.name?.contains("ViewController") ?? false }))
+        XCTAssertTrue(unitsWithSystem.contains(where: { $0.name?.contains("ViewModel") ?? false }))
+        XCTAssertTrue(unitsWithSystem.contains(where: { $0.name?.contains("TestSystemModule") ?? false }))
+
+        let unitsWithoutSystem = indexStore.units(includeSystem: false)
+        XCTAssertFalse(unitsWithoutSystem.contains(where: { $0.name?.contains("TestSystemModule") ?? true }))
     }
 
     func testDependency() throws {
