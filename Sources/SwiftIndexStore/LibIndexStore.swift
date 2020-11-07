@@ -16,7 +16,13 @@ public struct LibIndexStore {
     public static func open(url: URL) throws -> LibIndexStore {
         typealias Dylib = UnsafeMutableRawPointer
 
-        let dylib = dlopen(url.path, RTLD_LAZY | RTLD_LOCAL | RTLD_FIRST)!
+        var flags = RTLD_LAZY | RTLD_LOCAL
+
+        #if os(macOS)
+            flags |= RTLD_FIRST
+        #endif
+
+        let dylib = dlopen(url.path, flags)!
         var api = indexstore_functions_t()
         func requireSym<T>(_ dylib: Dylib, _ symbol: String) throws -> T {
             guard let sym = dlsym(dylib, symbol) else {
@@ -57,19 +63,18 @@ public struct LibIndexStore {
 
     }
 
-    public static func open(toolchainDir: URL) throws -> LibIndexStore {
-        let url = toolchainDir
+    public static func open() throws -> LibIndexStore {
+        #if os(Linux)
+        let url = URL(fileURLWithPath: "/usr/lib/libIndexStore.so")
+        #else
+        let url = try developerDir()
+            .appendingPathComponent("Toolchains")
+            .appendingPathComponent("XcodeDefault.xctoolchain")
             .appendingPathComponent("usr")
             .appendingPathComponent("lib")
             .appendingPathComponent("libIndexStore.dylib")
-        return try self.open(url: url)
-    }
-
-    public static func open() throws -> LibIndexStore {
-        let toolchainDir = try developerDir()
-            .appendingPathComponent("Toolchains")
-            .appendingPathComponent("XcodeDefault.xctoolchain")
-        return try open(toolchainDir: toolchainDir)
+        #endif
+        return try open(url: url)
     }
 
     private static func developerDir() throws -> URL {
