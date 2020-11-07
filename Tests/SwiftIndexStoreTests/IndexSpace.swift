@@ -22,7 +22,7 @@ class IndexSpace {
     }
 
     static func create(with toolchain: Toolchain) throws -> IndexSpace {
-        var (dir, _) = try Process.exec(bin: "/usr/bin/mktemp", arguments: ["-d"])
+        var (dir, _) = try Process.exec(bin: mktempPath, arguments: ["-d"])
         dir = dir.trimmingCharacters(in: .whitespacesAndNewlines)
         let space = IndexSpace(directoryPath: URL(fileURLWithPath: dir), toolchain: toolchain)
         try FileManager.default.createDirectory(at: space.indexStorePath, withIntermediateDirectories: false)
@@ -40,26 +40,40 @@ class IndexSpace {
             try index(at: source)
         }
     }
+
     private func index(at path: URL, file: String = #file) throws {
         let fileURL = URL(fileURLWithPath: file)
         let testsIndex = fileURL.pathComponents.firstIndex(of: "Tests") ?? 0
         let testSystemModulePath = (fileURL.pathComponents[0...testsIndex] + ["TestSystemModule", "include"]).joined(separator: "/").dropFirst()
 
+        var args = [
+            "-frontend", "-c", "-primary-file", path.path]
+            + sources.filter({ $0 != path }).map { $0.path }
+            + [
+                "-index-store-path", indexStorePath.path,
+                "-Xcc", "-I\(testSystemModulePath)"
+            ]
+
+        if let sdkPath = toolchain.sdkPath {
+            args += ["-sdk", sdkPath.path]
+        }
+
         try Process.exec(
             bin: toolchain.swiftc.path,
-            arguments: [
-                "-frontend", "-c", "-primary-file", path.path]
-                + sources.filter({ $0 != path }).map { $0.path }
-                + [
-                    "-index-store-path", indexStorePath.path,
-                    "-sdk", toolchain.sdkPath.path,
-                    "-Xcc", "-I\(testSystemModulePath)"
-            ],
+            arguments: args,
             cwd: directoryPath.path
         )
     }
 
     deinit {
         try! FileManager.default.removeItem(at: directoryPath)
+    }
+
+    private static var mktempPath: String {
+        #if os(Linux)
+        return "/bin/mktemp"
+        #else
+        return "/usr/bin/mktemp"
+        #endif
     }
 }

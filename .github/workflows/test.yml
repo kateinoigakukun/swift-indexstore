@@ -3,9 +3,9 @@ on:
   push: {}
   pull_request: {}
 jobs:
-  run:
+  macos:
     runs-on: macOS-latest
-    name: Build and run tests
+    name: macOS
     steps:
     - uses: actions/checkout@master
     - name: Xcode version
@@ -14,3 +14,13 @@ jobs:
       run: swift build
     - name: Test
       run: swift test
+  linux:
+    runs-on: ubuntu-latest
+    container: swift:5.3
+    name: Linux
+    steps:
+    - uses: actions/checkout@master
+    - name: Build
+      run: swift build --build-tests --enable-test-discovery
+    - name: Test
+      run: swift test --enable-test-discovery

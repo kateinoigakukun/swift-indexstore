@@ -2,7 +2,6 @@ import XCTest
 @testable import SwiftIndexStore
 
 final class SwiftIndexStoreTests: XCTestCase {
-
     static var indexStore: IndexStore!
     static var space: IndexSpace!
 
