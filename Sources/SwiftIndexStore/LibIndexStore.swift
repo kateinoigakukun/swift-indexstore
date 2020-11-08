@@ -65,9 +65,9 @@ public struct LibIndexStore {
 
     public static func open() throws -> LibIndexStore {
         #if os(Linux)
-        let url = URL(fileURLWithPath: "/usr/lib/libIndexStore.so")
+        let url = try linuxSwiftDir().appendingPathComponent("lib/libIndexStore.so")
         #else
-        let url = try developerDir()
+        let url = try macOSDeveloperDir()
             .appendingPathComponent("Toolchains")
             .appendingPathComponent("XcodeDefault.xctoolchain")
             .appendingPathComponent("usr")
@@ -77,7 +77,16 @@ public struct LibIndexStore {
         return try open(url: url)
     }
 
-    private static func developerDir() throws -> URL {
+    public static func linuxSwiftDir() throws -> URL {
+        let (binPath, _) = try Process.exec(bin: "/usr/bin/which", arguments: ["swift"])
+        return URL(
+            fileURLWithPath: binPath
+                .trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
+                .replacingOccurrences(of: "bin/swift", with: "")
+        )
+    }
+
+    private static func macOSDeveloperDir() throws -> URL {
         var (stdoutContent, _) = try Process.exec(
             bin: "/usr/bin/xcode-select",
             arguments: ["--print-path"]

@@ -7,7 +7,7 @@ class Toolchain {
 
     init() {
         #if os(Linux)
-        self.swiftc = URL(fileURLWithPath: "/usr/bin/swiftc")
+        self.swiftc = try! LibIndexStore.linuxSwiftDir().appendingPathComponent("bin/swiftc")
         #else
         self.swiftc = findTool(name: "swiftc")!
         var (sdkPath, _) = try! Process.exec(bin: "/usr/bin/xcrun", arguments: ["--show-sdk-path"])
