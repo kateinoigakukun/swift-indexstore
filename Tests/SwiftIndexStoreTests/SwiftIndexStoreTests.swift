@@ -10,7 +10,8 @@ final class SwiftIndexStoreTests: XCTestCase {
     override class func setUp() {
         space = try! IndexSpace.create(with: .init())
         try! space.addSource(name: "ViewController.swift",
-                            sourceCode: """
+                             module: "TestModule",
+                             sourceCode: """
         class ViewController {
           let viewModel: ViewModel = .init()
           func load() {
@@ -24,12 +25,14 @@ final class SwiftIndexStoreTests: XCTestCase {
         """
         )
         try! space.addSource(name: "ViewModel.swift",
-                            sourceCode: """
+                             module: "TestModule",
+                             sourceCode: """
         class ViewModel {
           let name: String = ""
         }
         """)
         try! space.addSource(name: "TestSystemImport.swift",
+                             module: "TestModule",
                              sourceCode: "import TestSystemModule")
         try! space.index()
         let lib = try! LibIndexStore.open()
@@ -56,6 +59,13 @@ final class SwiftIndexStoreTests: XCTestCase {
         let unit = try XCTUnwrap(units.first { $0.name?.contains("ViewController") ?? false })
         let path = try XCTUnwrap(indexStore.mainFilePath(for: unit))
         XCTAssertTrue(FileManager.default.fileExists(atPath: path))
+    }
+
+    func testUnitModuleName() throws {
+        let units = indexStore.units()
+        let unit = try XCTUnwrap(units.first { $0.name?.contains("ViewController") ?? false })
+        let moduleName = try XCTUnwrap(indexStore.moduleName(for: unit))
+        XCTAssertEqual(moduleName, "TestModule")
     }
 
     func testDependency() throws {
