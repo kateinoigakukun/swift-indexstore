@@ -6,7 +6,9 @@ class IndexSpace {
     let directoryPath: URL
     let toolchain: Toolchain
 
-    var sources: [URL] = []
+    typealias SourceLocation = (module: String, url: URL)
+
+    var sources: [SourceLocation] = []
 
     var indexStorePath: URL {
         directoryPath.appendingPathComponent("IndexStore")
@@ -29,10 +31,10 @@ class IndexSpace {
         return space
     }
 
-    func addSource(name: String, sourceCode: String) throws {
+    func addSource(name: String, module: String, sourceCode: String) throws {
         let filePath = directoryPath.appendingPathComponent(name)
         try sourceCode.write(toFile: filePath.path, atomically: true, encoding: .utf8)
-        sources.append(filePath)
+        sources.append((module, filePath))
     }
 
     func index() throws {
@@ -41,17 +43,18 @@ class IndexSpace {
         }
     }
 
-    private func index(at path: URL, file: String = #file) throws {
+    private func index(at location: SourceLocation, file: String = #file) throws {
         let fileURL = URL(fileURLWithPath: file)
         let testsIndex = fileURL.pathComponents.firstIndex(of: "Tests") ?? 0
         let testSystemModulePath = (fileURL.pathComponents[0...testsIndex] + ["TestSystemModule", "include"]).joined(separator: "/").dropFirst()
 
         var args = [
-            "-frontend", "-c", "-primary-file", path.path]
-            + sources.filter({ $0 != path }).map { $0.path }
+            "-frontend", "-c", "-primary-file", location.url.path]
+            + sources.filter({ $0.url != location.url }).map { $0.url.path }
             + [
                 "-index-store-path", indexStorePath.path,
-                "-Xcc", "-I\(testSystemModulePath)"
+                "-Xcc", "-I\(testSystemModulePath)",
+                "-module-name", location.module
             ]
 
         if let sdkPath = toolchain.sdkPath {
