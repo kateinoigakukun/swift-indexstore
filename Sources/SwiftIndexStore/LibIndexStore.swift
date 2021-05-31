@@ -32,11 +32,13 @@ public struct LibIndexStore {
         }
 
         api.store_create = try requireSym(dylib, "indexstore_store_create")
+        api.store_dispose = try requireSym(dylib, "indexstore_store_dispose")
         api.store_units_apply_f = try requireSym(dylib, "indexstore_store_units_apply_f")
         api.unit_reader_dependencies_apply_f = try requireSym(dylib, "indexstore_unit_reader_dependencies_apply_f")
         api.unit_reader_is_system_unit = try requireSym(dylib, "indexstore_unit_reader_is_system_unit")
         api.unit_dependency_get_kind = try requireSym(dylib, "indexstore_unit_dependency_get_kind")
         api.unit_reader_create = try requireSym(dylib, "indexstore_unit_reader_create")
+        api.unit_reader_dispose = try requireSym(dylib, "indexstore_unit_reader_dispose")
         api.unit_reader_get_main_file = try requireSym(dylib, "indexstore_unit_reader_get_main_file")
         api.unit_reader_get_module_name = try requireSym(dylib, "indexstore_unit_reader_get_module_name")
         api.unit_dependency_get_name = try requireSym(dylib, "indexstore_unit_dependency_get_name")
@@ -44,6 +46,7 @@ public struct LibIndexStore {
         api.unit_dependency_get_modulename = try requireSym(dylib, "indexstore_unit_dependency_get_modulename")
         api.unit_dependency_is_system = try requireSym(dylib, "indexstore_unit_dependency_is_system")
         api.record_reader_create = try requireSym(dylib, "indexstore_record_reader_create")
+        api.record_reader_dispose = try requireSym(dylib, "indexstore_record_reader_dispose")
         api.record_reader_occurrences_apply_f = try requireSym(dylib, "indexstore_record_reader_occurrences_apply_f")
         api.record_reader_occurrences_of_symbols_apply_f = try requireSym(dylib, "indexstore_record_reader_occurrences_of_symbols_apply_f")
         api.record_reader_symbols_apply_f = try requireSym(dylib, "indexstore_record_reader_symbols_apply_f")
