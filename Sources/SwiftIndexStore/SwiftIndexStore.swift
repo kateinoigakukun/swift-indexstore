@@ -60,13 +60,13 @@ public final class IndexStore {
 
     public func mainFilePath(for unit: IndexStoreUnit) throws -> String? {
         let reader = try createUnitReader(for: unit)
-		defer { lib.unit_reader_dispose(reader) }
+        defer { lib.unit_reader_dispose(reader) }
         return lib.unit_reader_get_main_file(reader).toSwiftString()
     }
 
     public func moduleName(for unit: IndexStoreUnit) throws -> String? {
         let reader = try createUnitReader(for: unit)
-		defer { lib.unit_reader_dispose(reader) }
+        defer { lib.unit_reader_dispose(reader) }
         return lib.unit_reader_get_module_name(reader).toSwiftString()
     }
 
