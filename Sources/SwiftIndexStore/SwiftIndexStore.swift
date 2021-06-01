@@ -6,6 +6,10 @@ public final class IndexStore {
     let store: indexstore_t
     let lib: LibIndexStore
 
+    deinit {
+        lib.store_dispose(store)
+    }
+
     private init(store: indexstore_t, lib: LibIndexStore) {
         self.store = store
         self.lib = lib
@@ -56,11 +60,13 @@ public final class IndexStore {
 
     public func mainFilePath(for unit: IndexStoreUnit) throws -> String? {
         let reader = try createUnitReader(for: unit)
+        defer { lib.unit_reader_dispose(reader) }
         return lib.unit_reader_get_main_file(reader).toSwiftString()
     }
 
     public func moduleName(for unit: IndexStoreUnit) throws -> String? {
         let reader = try createUnitReader(for: unit)
+        defer { lib.unit_reader_dispose(reader) }
         return lib.unit_reader_get_module_name(reader).toSwiftString()
     }
 
@@ -73,6 +79,7 @@ public final class IndexStore {
             try _forEachUnits { unit in
                 let reader = try createUnitReader(for: unit)
                 let isSystem = lib.unit_reader_is_system_unit(reader)
+                lib.unit_reader_dispose(reader)
 
                 if !isSystem {
                     return try next(unit)
@@ -85,6 +92,7 @@ public final class IndexStore {
 
     public func forEachRecordDependencies(for unit: IndexStoreUnit, _ next: (IndexStoreUnit.Dependency) throws -> Bool) throws {
         let reader = try createUnitReader(for: unit)
+        defer { lib.unit_reader_dispose(reader) }
         typealias Ctx = Context<((IndexStoreUnit.Dependency) throws -> Bool)>
         try withoutActuallyEscaping(next) { next in
             let handler = Ctx(next, lib: lib)
@@ -107,6 +115,7 @@ public final class IndexStore {
         guard let reader = try lib.throwsfy({ lib.record_reader_create(store, record.name, &$0) }) else {
             throw IndexStoreError.unableCreateRecordReader(record.name)
         }
+        defer { lib.record_reader_dispose(reader) }
         typealias Ctx = Context<(IndexStoreSymbol) throws -> Bool>
         try withoutActuallyEscaping(next) { next in
             let handler = Ctx(next, lib: lib)
@@ -133,6 +142,7 @@ public final class IndexStore {
         guard let reader = try lib.throwsfy({ lib.record_reader_create(store, record.name, &$0) }) else {
             throw IndexStoreError.unableCreateRecordReader(record.name)
         }
+        defer { lib.record_reader_dispose(reader) }
 
         typealias Ctx = Context<(
             next: (IndexStoreOccurrence) throws -> Bool,
@@ -176,6 +186,7 @@ public final class IndexStore {
         guard let reader = try lib.throwsfy({ lib.record_reader_create(store, record.name, &$0) }) else {
             throw IndexStoreError.unableCreateRecordReader(record.name)
         }
+        defer { lib.record_reader_dispose(reader) }
         typealias Ctx = Context<(
             next: (IndexStoreOccurrence) throws -> Bool,
             recordPath: String?,
