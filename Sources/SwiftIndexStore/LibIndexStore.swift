@@ -41,6 +41,7 @@ public struct LibIndexStore {
         api.unit_reader_dispose = try requireSym(dylib, "indexstore_unit_reader_dispose")
         api.unit_reader_get_main_file = try requireSym(dylib, "indexstore_unit_reader_get_main_file")
         api.unit_reader_get_module_name = try requireSym(dylib, "indexstore_unit_reader_get_module_name")
+        api.unit_reader_get_target = try requireSym(dylib, "indexstore_unit_reader_get_target")
         api.unit_dependency_get_name = try requireSym(dylib, "indexstore_unit_dependency_get_name")
         api.unit_dependency_get_filepath = try requireSym(dylib, "indexstore_unit_dependency_get_filepath")
         api.unit_dependency_get_modulename = try requireSym(dylib, "indexstore_unit_dependency_get_modulename")

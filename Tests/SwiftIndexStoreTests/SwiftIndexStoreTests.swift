@@ -72,6 +72,13 @@ final class SwiftIndexStoreTests: XCTestCase {
         XCTAssertEqual(moduleName, "TestModule")
     }
 
+    func testUnitTarget() throws {
+        let units = indexStore.units()
+        let unit = try XCTUnwrap(units.first { $0.name?.contains("ViewController") ?? false })
+        let moduleName = try XCTUnwrap(indexStore.target(for: unit))
+        XCTAssertNotNil(moduleName)
+    }
+
     func testDependency() throws {
         let unit = indexStore.units().first(where: { $0.name?.contains("ViewController") ?? false })!
         let dependencies = try indexStore.recordDependencies(for: unit)
