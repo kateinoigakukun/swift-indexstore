@@ -70,6 +70,12 @@ public final class IndexStore {
         return lib.unit_reader_get_module_name(reader).toSwiftString()
     }
 
+    public func target(for unit: IndexStoreUnit) throws -> String? {
+        let reader = try createUnitReader(for: unit)
+        defer { lib.unit_reader_dispose(reader) }
+        return lib.unit_reader_get_target(reader).toSwiftString()
+    }
+
     // - MARK: ForEach Functions
 
     public func forEachUnits(includeSystem: Bool = true, _ next: (IndexStoreUnit) throws -> Bool) rethrows {
