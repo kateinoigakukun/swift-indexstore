@@ -48,7 +48,11 @@ final class SwiftIndexStoreTests: XCTestCase {
         let unitsWithSystem = indexStore.units(includeSystem: true)
         XCTAssertTrue(unitsWithSystem.contains(where: { $0.name?.contains("ViewController") ?? false }))
         XCTAssertTrue(unitsWithSystem.contains(where: { $0.name?.contains("ViewModel") ?? false }))
+        #if compiler(>=5.4)
+        XCTAssertTrue(unitsWithSystem.contains(where: { $0.name?.contains("TestSystemImport") ?? false }))
+        #else
         XCTAssertTrue(unitsWithSystem.contains(where: { $0.name?.contains("TestSystemModule") ?? false }))
+        #endif
 
         let unitsWithoutSystem = indexStore.units(includeSystem: false)
         XCTAssertFalse(unitsWithoutSystem.contains(where: { $0.name?.contains("TestSystemModule") ?? true }))
