@@ -2,10 +2,15 @@ import Foundation
 import _CIndexStore
 
 @dynamicMemberLookup
-public struct LibIndexStore {
+public class LibIndexStore {
 
     private let url: URL
     private let api: indexstore_functions_t
+
+    init(url: URL, api: indexstore_functions_t) {
+        self.url = url
+        self.api = api
+    }
 
     func getPath() -> String { url.path }
 
