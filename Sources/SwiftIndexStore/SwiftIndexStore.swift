@@ -6,7 +6,11 @@ public final class IndexStore {
     let store: indexstore_t
     let lib: LibIndexStore
 
+    private var unitReacherCache = [IndexStoreUnit: indexstore_unit_reader_t]()
+    private let unitReacherCacheLock = UnfairLock()
+
     deinit {
+        unitReacherCache.values.forEach { lib.unit_reader_dispose($0) }
         lib.store_dispose(store)
     }
 
@@ -60,19 +64,16 @@ public final class IndexStore {
 
     public func mainFilePath(for unit: IndexStoreUnit) throws -> String? {
         let reader = try createUnitReader(for: unit)
-        defer { lib.unit_reader_dispose(reader) }
         return lib.unit_reader_get_main_file(reader).toSwiftString()
     }
 
     public func moduleName(for unit: IndexStoreUnit) throws -> String? {
         let reader = try createUnitReader(for: unit)
-        defer { lib.unit_reader_dispose(reader) }
         return lib.unit_reader_get_module_name(reader).toSwiftString()
     }
 
     public func target(for unit: IndexStoreUnit) throws -> String? {
         let reader = try createUnitReader(for: unit)
-        defer { lib.unit_reader_dispose(reader) }
         return lib.unit_reader_get_target(reader).toSwiftString()
     }
 
@@ -85,7 +86,6 @@ public final class IndexStore {
             try _forEachUnits { unit in
                 let reader = try createUnitReader(for: unit)
                 let isSystem = lib.unit_reader_is_system_unit(reader)
-                lib.unit_reader_dispose(reader)
 
                 if !isSystem {
                     return try next(unit)
@@ -98,7 +98,6 @@ public final class IndexStore {
 
     public func forEachRecordDependencies(for unit: IndexStoreUnit, _ next: (IndexStoreUnit.Dependency) throws -> Bool) throws {
         let reader = try createUnitReader(for: unit)
-        defer { lib.unit_reader_dispose(reader) }
         typealias Ctx = Context<((IndexStoreUnit.Dependency) throws -> Bool)>
         try withoutActuallyEscaping(next) { next in
             let handler = Ctx(next, lib: lib)
@@ -248,8 +247,20 @@ public final class IndexStore {
     // - MARK: Private
 
     private func createUnitReader(for unit: IndexStoreUnit) throws -> indexstore_unit_reader_t {
+        let reader = unitReacherCacheLock.perform {
+            unitReacherCache[unit]
+        }
+
+        if let reader {
+            return reader
+        }
+
         guard let reader = try lib.throwsfy({ lib.unit_reader_create(store, unit.name, &$0) }) else {
             throw IndexStoreError.unableCreateUnitReader(unit.name)
+        }
+
+        unitReacherCacheLock.perform {
+            unitReacherCache[unit] = reader
         }
 
         return reader

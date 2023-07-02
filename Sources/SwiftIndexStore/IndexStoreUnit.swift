@@ -1,6 +1,6 @@
 import _CIndexStore
 
-public struct IndexStoreUnit {
+public struct IndexStoreUnit: Hashable {
     public let name: String?
 
     public enum Dependency {
