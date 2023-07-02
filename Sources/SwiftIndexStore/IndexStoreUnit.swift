@@ -48,14 +48,6 @@ public struct IndexStoreUnit: Hashable {
             }
         }
 
-        public var moduleName: String? {
-            switch self {
-            case .record(let record): return record.moduleName
-            case .unit(let unit): return unit.moduleName
-            case .file(let file): return file.moduleName
-            }
-        }
-
         public var isSystem: Bool {
             switch self {
             case .record(let record): return record.isSystem
@@ -67,7 +59,6 @@ public struct IndexStoreUnit: Hashable {
         public struct Content<Kind> {
             public var name: String?
             public var filePath: String?
-            public var moduleName: String?
             public var isSystem: Bool
 
             let anchor: indexstore_unit_dependency_t?

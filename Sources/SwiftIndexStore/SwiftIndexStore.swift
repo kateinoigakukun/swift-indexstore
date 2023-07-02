@@ -288,12 +288,12 @@ public final class IndexStore {
     private static func createUnitDependency(from dependency: indexstore_unit_dependency_t?, lib: LibIndexStore) -> IndexStoreUnit.Dependency {
         let name = lib.unit_dependency_get_name(dependency).toSwiftString()
         let filePath = lib.unit_dependency_get_filepath(dependency).toSwiftString()
-        let moduleName = lib.unit_dependency_get_modulename(dependency).toSwiftString()
         let isSystem = lib.unit_dependency_is_system(dependency)
         func create<T>() -> IndexStoreUnit.Dependency.Content<T> {
             IndexStoreUnit.Dependency.Content(
-                name: name, filePath: filePath,
-                moduleName: moduleName, isSystem: isSystem,
+                name: name,
+                filePath: filePath,
+                isSystem: isSystem,
                 anchor: dependency
             )
         }
@@ -376,10 +376,7 @@ extension indexstore_string_ref_t {
     fileprivate func toSwiftString() -> String? {
         guard data != nil else { return nil }
         return String(
-            bytesNoCopy: UnsafeMutableRawPointer(mutating: data),
-            length: length,
-            encoding: .utf8,
-            freeWhenDone: false
-        )!
+            data: Data(bytesNoCopy: UnsafeMutableRawPointer(mutating: data), count: length, deallocator: .none),
+            encoding: .utf8)
     }
 }
