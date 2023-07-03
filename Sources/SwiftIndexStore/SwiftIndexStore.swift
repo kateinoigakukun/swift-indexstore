@@ -142,6 +142,7 @@ public final class IndexStore {
     public func forEachOccurrences(for record: IndexStoreUnit.Dependency.Record,
                                    symbols: [IndexStoreSymbol],
                                    relatedSymbols: [IndexStoreSymbol],
+                                   language: IndexStoreSymbol.Language? = nil,
                                    _ next: (IndexStoreOccurrence) throws -> Bool) throws {
 
         guard let reader = try lib.throwsfy({ lib.record_reader_create(store, record.name, &$0) }) else {
@@ -152,11 +153,12 @@ public final class IndexStore {
         typealias Ctx = Context<(
             next: (IndexStoreOccurrence) throws -> Bool,
             recordPath: String?,
-            isSystem: Bool
+            isSystem: Bool,
+            language: UInt32?
         )>
 
         try withoutActuallyEscaping(next) { next in
-            let handler = Ctx((next, record.filePath, record.isSystem), lib: lib)
+            let handler = Ctx((next, record.filePath, record.isSystem, language?.rawValue), lib: lib)
             let ctx = Unmanaged.passUnretained(handler).toOpaque()
             var symbols = symbols.map { $0.anchor }
             var relatedSymbols = relatedSymbols.map { $0.anchor }
@@ -168,12 +170,13 @@ public final class IndexStore {
                         ctx
                     ) { ctx, occurrence -> Bool in
                         let ctx = Unmanaged<Ctx>.fromOpaque(ctx!).takeUnretainedValue()
-                        let occ = IndexStore.createOccurrence(
+                        guard let occ = IndexStore.createOccurrence(
                             from: occurrence,
                             recordPath: ctx.content.recordPath,
                             isSystem: ctx.content.isSystem,
+                            language: ctx.content.language,
                             lib: ctx.lib
-                        )
+                        ) else { return true }
                         do { return try ctx.content.next(occ) } catch {
                             ctx.error = error
                             return false
@@ -187,7 +190,10 @@ public final class IndexStore {
         }
     }
 
-    public func forEachOccurrences(for record: IndexStoreUnit.Dependency.Record, _ next: (IndexStoreOccurrence) throws -> Bool) throws {
+    public func forEachOccurrences(
+        for record: IndexStoreUnit.Dependency.Record,
+        language: IndexStoreSymbol.Language? = nil,
+        _ next: (IndexStoreOccurrence) throws -> Bool) throws {
         guard let reader = try lib.throwsfy({ lib.record_reader_create(store, record.name, &$0) }) else {
             throw IndexStoreError.unableCreateRecordReader(record.name)
         }
@@ -195,20 +201,22 @@ public final class IndexStore {
         typealias Ctx = Context<(
             next: (IndexStoreOccurrence) throws -> Bool,
             recordPath: String?,
-            isSystem: Bool
+            isSystem: Bool,
+            language: UInt32?
         )>
 
         try withoutActuallyEscaping(next) { next in
-            let handler = Ctx((next, record.filePath, record.isSystem), lib: lib)
+            let handler = Ctx((next, record.filePath, record.isSystem, language?.rawValue), lib: lib)
             let ctx = Unmanaged.passUnretained(handler).toOpaque()
             _ = lib.record_reader_occurrences_apply_f(reader, ctx) { ctx, occurrence -> Bool in
                 let ctx = Unmanaged<Ctx>.fromOpaque(ctx!).takeUnretainedValue()
-                let occ = IndexStore.createOccurrence(
+                guard let occ = IndexStore.createOccurrence(
                     from: occurrence,
                     recordPath: ctx.content.recordPath,
                     isSystem: ctx.content.isSystem,
+                    language: ctx.content.language,
                     lib: ctx.lib
-                )
+                ) else { return true }
                 do { return try ctx.content.next(occ) } catch {
                     ctx.error = error
                     return false
@@ -305,12 +313,15 @@ public final class IndexStore {
         }
     }
 
-    private static func createSymbol(from symbol: indexstore_symbol_t?, lib: LibIndexStore) -> IndexStoreSymbol {
+    private static func createSymbol(
+        from symbol: indexstore_symbol_t?,
+        language: UInt32? = nil,
+        lib: LibIndexStore) -> IndexStoreSymbol {
         let symbolKind = IndexStoreSymbol.Kind(rawValue: lib.symbol_get_kind(symbol).rawValue)!
         let symbolSubKind = IndexStoreSymbol.SubKind(rawValue: lib.symbol_get_subkind(symbol).rawValue)!
         let symbolUsr = lib.symbol_get_usr(symbol).toSwiftString()
         let symbolName = lib.symbol_get_name(symbol).toSwiftString()
-        let symbolLanguage = IndexStoreSymbol.Language(rawValue: lib.symbol_get_language(symbol).rawValue)!
+        let symbolLanguage = IndexStoreSymbol.Language(rawValue: language ?? lib.symbol_get_language(symbol).rawValue)!
         return IndexStoreSymbol(
             usr: symbolUsr, name: symbolName,
             kind: symbolKind, subKind: symbolSubKind,
@@ -323,11 +334,20 @@ public final class IndexStore {
         from occurrence: indexstore_occurrence_t?,
         recordPath: String?,
         isSystem: Bool,
+        language: UInt32?,
         lib: LibIndexStore
-    ) -> IndexStoreOccurrence {
+    ) -> IndexStoreOccurrence? {
+        let symbol = lib.occurrence_get_symbol(occurrence)
+        let symbolLanguage = lib.symbol_get_language(symbol).rawValue
+
+        if let language, language != symbolLanguage {
+            return nil
+        }
+
         let symbolRoles = IndexStoreOccurrence.Role(rawValue: lib.occurrence_get_roles(occurrence))
         let sym = IndexStore.createSymbol(
-            from: lib.occurrence_get_symbol(occurrence),
+            from: symbol,
+            language: language,
             lib: lib
         )
         var line: UInt32 = 0
