@@ -25,7 +25,7 @@
  * INDEXSTORE_VERSION_MAJOR is intended for "major" source/ABI breaking changes.
  */
 #define INDEXSTORE_VERSION_MAJOR 0
-#define INDEXSTORE_VERSION_MINOR 11
+#define INDEXSTORE_VERSION_MINOR 15 /* added Swift init accessor sub-symbol */
 
 #define INDEXSTORE_VERSION_ENCODE(major, minor) ( \
       ((major) * 10000)                           \
@@ -79,6 +79,7 @@ typedef struct {
 } indexstore_string_ref_t;
 
 typedef void *indexstore_t;
+typedef void *indexstore_creation_options_t;
 
 typedef void *indexstore_unit_event_notification_t;
 typedef void *indexstore_unit_event_t;
@@ -127,6 +128,7 @@ typedef enum {
   INDEXSTORE_SYMBOL_KIND_CONVERSIONFUNCTION = 24,
   INDEXSTORE_SYMBOL_KIND_PARAMETER = 25,
   INDEXSTORE_SYMBOL_KIND_USING = 26,
+  INDEXSTORE_SYMBOL_KIND_CONCEPT = 27,
 
   INDEXSTORE_SYMBOL_KIND_COMMENTTAG = 1000,
 } indexstore_symbol_kind_t;
@@ -139,6 +141,7 @@ typedef enum {
   INDEXSTORE_SYMBOL_SUBKIND_ACCESSORSETTER = 4,
   INDEXSTORE_SYMBOL_SUBKIND_USINGTYPENAME = 5,
   INDEXSTORE_SYMBOL_SUBKIND_USINGVALUE = 6,
+  INDEXSTORE_SYMBOL_SUBKIND_USINGENUM = 7,
 
   INDEXSTORE_SYMBOL_SUBKIND_SWIFTACCESSORWILLSET = 1000,
   INDEXSTORE_SYMBOL_SUBKIND_SWIFTACCESSORDIDSET = 1001,
@@ -156,6 +159,7 @@ typedef enum {
   INDEXSTORE_SYMBOL_SUBKIND_SWIFTGENERICTYPEPARAM = 1013,
   INDEXSTORE_SYMBOL_SUBKIND_SWIFTACCESSORREAD = 1014,
   INDEXSTORE_SYMBOL_SUBKIND_SWIFTACCESSORMODIFY = 1015,
+  INDEXSTORE_SYMBOL_SUBKIND_SWIFTACCESSORINIT = 1016,
 } indexstore_symbol_subkind_t;
 
 typedef enum {
@@ -168,6 +172,7 @@ typedef enum {
   INDEXSTORE_SYMBOL_PROPERTY_GKINSPECTABLE                    = 1 << 6,
   INDEXSTORE_SYMBOL_PROPERTY_LOCAL                            = 1 << 7,
   INDEXSTORE_SYMBOL_PROPERTY_PROTOCOL_INTERFACE               = 1 << 8,
+  INDEXSTORE_SYMBOL_PROPERTY_SWIFT_ASYNC                      = 1 << 16,
 } indexstore_symbol_property_t;
 
 typedef enum {
@@ -189,6 +194,7 @@ typedef enum {
   INDEXSTORE_SYMBOL_ROLE_ADDRESSOF    = 1 << 7,
   INDEXSTORE_SYMBOL_ROLE_IMPLICIT     = 1 << 8,
   INDEXSTORE_SYMBOL_ROLE_UNDEFINITION = 1 << 19,
+  INDEXSTORE_SYMBOL_ROLE_NAMEREFERENCE = 1 << 20,
 
   // Relation roles.
   INDEXSTORE_SYMBOL_ROLE_REL_CHILDOF     = 1 << 9,
@@ -234,8 +240,26 @@ typedef struct {
   unsigned
   (*format_version)(void);
 
+  unsigned (*version)(void);
+
+  indexstore_creation_options_t
+  (*creation_options_create)(void);
+
+  void
+  (*creation_options_dispose)(indexstore_creation_options_t);
+
+  void
+  (*creation_options_add_prefix_mapping)(indexstore_creation_options_t options,
+                                         const char *path_prefix,
+                                         const char *remapped_path_prefix);
+
   indexstore_t
   (*store_create)(const char *store_path, indexstore_error_t *error);
+
+  indexstore_t
+  (*store_create_with_options)(const char *store_path,
+                               indexstore_creation_options_t options,
+                               indexstore_error_t *error);
 
   void
   (*store_dispose)(indexstore_t);
