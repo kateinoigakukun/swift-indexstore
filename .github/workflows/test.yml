@@ -19,7 +19,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        swift-version: [5.8, 5.9, 5.10]
+        swift-version: ["5.8", "5.9", "5.10"]
     container: swift:${{ matrix.swift-version }}-jammy
     name: Linux
     steps:
