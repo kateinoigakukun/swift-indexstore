@@ -19,12 +19,12 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        swift-version: [5.5, 5.6, 5.7]
-    container: swift:${{ matrix.swift-version }}
+        swift-version: [5.8, 5.9, 5.10]
+    container: swift:${{ matrix.swift-version }}-jammy
     name: Linux
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Build
-      run: swift build --build-tests --enable-test-discovery
+      run: swift build --build-tests
     - name: Test
-      run: swift test --enable-test-discovery
+      run: swift test
