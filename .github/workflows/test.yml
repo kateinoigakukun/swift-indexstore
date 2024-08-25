@@ -3,6 +3,15 @@ on:
   push: {}
   pull_request: {}
 jobs:
+  bazel:
+    runs-on: macOS-latest
+    name: Bazel
+    steps:
+    - uses: actions/checkout@v3
+    - name: Xcode version
+      run: /usr/bin/xcode-select --print-path
+    - name: Test
+      run: bazel test :Tests
   macos:
     runs-on: macOS-latest
     name: macOS
