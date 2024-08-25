@@ -1,0 +1,34 @@
+load("@rules_swift//swift:swift.bzl", "swift_binary", "swift_library", "swift_test")
+
+swift_binary(
+    name = "index-dump-tool",
+    srcs = glob(["Sources/IndexDumpTool/**/*.swift"]),
+    deps = [
+        ":SwiftIndexStore",
+        "@swift_argument_parser//:ArgumentParser",
+    ],
+)
+
+cc_library(
+    name = "_CIndexStore",
+    hdrs = glob(["Sources/_CIndexStore/include/*.h"]),
+    aspect_hints = ["@rules_swift//swift:auto_module"],
+    linkstatic = True,
+)
+
+swift_library(
+    name = "SwiftIndexStore",
+    srcs = glob(["Sources/SwiftIndexStore/**/*.swift"]),
+    module_name = "SwiftIndexStore",
+    visibility = ["//visibility:public"],
+    deps = [":_CIndexStore"],
+)
+
+swift_test(
+    name = "Tests",
+    srcs = glob(["Tests/SwiftIndexStoreTests/**/*.swift"]),
+    data = glob(["Tests/TestSystemModule/**/*"]),
+    module_name = "Tests",
+    visibility = ["//visibility:public"],
+    deps = [":SwiftIndexStore"],
+)
