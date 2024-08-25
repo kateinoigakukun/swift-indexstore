@@ -6,7 +6,11 @@ public final class IndexStore {
     let store: indexstore_t
     let lib: LibIndexStore
 
+    private var unitReacherCache = [IndexStoreUnit: indexstore_unit_reader_t]()
+    private let unitReacherCacheLock = UnfairLock()
+
     deinit {
+        unitReacherCache.values.forEach { lib.unit_reader_dispose($0) }
         lib.store_dispose(store)
     }
 
@@ -60,19 +64,16 @@ public final class IndexStore {
 
     public func mainFilePath(for unit: IndexStoreUnit) throws -> String? {
         let reader = try createUnitReader(for: unit)
-        defer { lib.unit_reader_dispose(reader) }
         return lib.unit_reader_get_main_file(reader).toSwiftString()
     }
 
     public func moduleName(for unit: IndexStoreUnit) throws -> String? {
         let reader = try createUnitReader(for: unit)
-        defer { lib.unit_reader_dispose(reader) }
         return lib.unit_reader_get_module_name(reader).toSwiftString()
     }
 
     public func target(for unit: IndexStoreUnit) throws -> String? {
         let reader = try createUnitReader(for: unit)
-        defer { lib.unit_reader_dispose(reader) }
         return lib.unit_reader_get_target(reader).toSwiftString()
     }
 
@@ -85,7 +86,6 @@ public final class IndexStore {
             try _forEachUnits { unit in
                 let reader = try createUnitReader(for: unit)
                 let isSystem = lib.unit_reader_is_system_unit(reader)
-                lib.unit_reader_dispose(reader)
 
                 if !isSystem {
                     return try next(unit)
@@ -98,7 +98,6 @@ public final class IndexStore {
 
     public func forEachRecordDependencies(for unit: IndexStoreUnit, _ next: (IndexStoreUnit.Dependency) throws -> Bool) throws {
         let reader = try createUnitReader(for: unit)
-        defer { lib.unit_reader_dispose(reader) }
         typealias Ctx = Context<((IndexStoreUnit.Dependency) throws -> Bool)>
         try withoutActuallyEscaping(next) { next in
             let handler = Ctx(next, lib: lib)
@@ -143,6 +142,7 @@ public final class IndexStore {
     public func forEachOccurrences(for record: IndexStoreUnit.Dependency.Record,
                                    symbols: [IndexStoreSymbol],
                                    relatedSymbols: [IndexStoreSymbol],
+                                   language: IndexStoreSymbol.Language? = nil,
                                    _ next: (IndexStoreOccurrence) throws -> Bool) throws {
 
         guard let reader = try lib.throwsfy({ lib.record_reader_create(store, record.name, &$0) }) else {
@@ -153,11 +153,12 @@ public final class IndexStore {
         typealias Ctx = Context<(
             next: (IndexStoreOccurrence) throws -> Bool,
             recordPath: String?,
-            isSystem: Bool
+            isSystem: Bool,
+            language: UInt32?
         )>
 
         try withoutActuallyEscaping(next) { next in
-            let handler = Ctx((next, record.filePath, record.isSystem), lib: lib)
+            let handler = Ctx((next, record.filePath, record.isSystem, language?.rawValue), lib: lib)
             let ctx = Unmanaged.passUnretained(handler).toOpaque()
             var symbols = symbols.map { $0.anchor }
             var relatedSymbols = relatedSymbols.map { $0.anchor }
@@ -169,12 +170,13 @@ public final class IndexStore {
                         ctx
                     ) { ctx, occurrence -> Bool in
                         let ctx = Unmanaged<Ctx>.fromOpaque(ctx!).takeUnretainedValue()
-                        let occ = IndexStore.createOccurrence(
+                        guard let occ = IndexStore.createOccurrence(
                             from: occurrence,
                             recordPath: ctx.content.recordPath,
                             isSystem: ctx.content.isSystem,
+                            language: ctx.content.language,
                             lib: ctx.lib
-                        )
+                        ) else { return true }
                         do { return try ctx.content.next(occ) } catch {
                             ctx.error = error
                             return false
@@ -188,7 +190,10 @@ public final class IndexStore {
         }
     }
 
-    public func forEachOccurrences(for record: IndexStoreUnit.Dependency.Record, _ next: (IndexStoreOccurrence) throws -> Bool) throws {
+    public func forEachOccurrences(
+        for record: IndexStoreUnit.Dependency.Record,
+        language: IndexStoreSymbol.Language? = nil,
+        _ next: (IndexStoreOccurrence) throws -> Bool) throws {
         guard let reader = try lib.throwsfy({ lib.record_reader_create(store, record.name, &$0) }) else {
             throw IndexStoreError.unableCreateRecordReader(record.name)
         }
@@ -196,20 +201,22 @@ public final class IndexStore {
         typealias Ctx = Context<(
             next: (IndexStoreOccurrence) throws -> Bool,
             recordPath: String?,
-            isSystem: Bool
+            isSystem: Bool,
+            language: UInt32?
         )>
 
         try withoutActuallyEscaping(next) { next in
-            let handler = Ctx((next, record.filePath, record.isSystem), lib: lib)
+            let handler = Ctx((next, record.filePath, record.isSystem, language?.rawValue), lib: lib)
             let ctx = Unmanaged.passUnretained(handler).toOpaque()
             _ = lib.record_reader_occurrences_apply_f(reader, ctx) { ctx, occurrence -> Bool in
                 let ctx = Unmanaged<Ctx>.fromOpaque(ctx!).takeUnretainedValue()
-                let occ = IndexStore.createOccurrence(
+                guard let occ = IndexStore.createOccurrence(
                     from: occurrence,
                     recordPath: ctx.content.recordPath,
                     isSystem: ctx.content.isSystem,
+                    language: ctx.content.language,
                     lib: ctx.lib
-                )
+                ) else { return true }
                 do { return try ctx.content.next(occ) } catch {
                     ctx.error = error
                     return false
@@ -248,8 +255,20 @@ public final class IndexStore {
     // - MARK: Private
 
     private func createUnitReader(for unit: IndexStoreUnit) throws -> indexstore_unit_reader_t {
+        let reader = unitReacherCacheLock.perform {
+            unitReacherCache[unit]
+        }
+
+        if let reader {
+            return reader
+        }
+
         guard let reader = try lib.throwsfy({ lib.unit_reader_create(store, unit.name, &$0) }) else {
             throw IndexStoreError.unableCreateUnitReader(unit.name)
+        }
+
+        unitReacherCacheLock.perform {
+            unitReacherCache[unit] = reader
         }
 
         return reader
@@ -277,12 +296,12 @@ public final class IndexStore {
     private static func createUnitDependency(from dependency: indexstore_unit_dependency_t?, lib: LibIndexStore) -> IndexStoreUnit.Dependency {
         let name = lib.unit_dependency_get_name(dependency).toSwiftString()
         let filePath = lib.unit_dependency_get_filepath(dependency).toSwiftString()
-        let moduleName = lib.unit_dependency_get_modulename(dependency).toSwiftString()
         let isSystem = lib.unit_dependency_is_system(dependency)
         func create<T>() -> IndexStoreUnit.Dependency.Content<T> {
             IndexStoreUnit.Dependency.Content(
-                name: name, filePath: filePath,
-                moduleName: moduleName, isSystem: isSystem,
+                name: name,
+                filePath: filePath,
+                isSystem: isSystem,
                 anchor: dependency
             )
         }
@@ -294,12 +313,15 @@ public final class IndexStore {
         }
     }
 
-    private static func createSymbol(from symbol: indexstore_symbol_t?, lib: LibIndexStore) -> IndexStoreSymbol {
+    private static func createSymbol(
+        from symbol: indexstore_symbol_t?,
+        language: UInt32? = nil,
+        lib: LibIndexStore) -> IndexStoreSymbol {
         let symbolKind = IndexStoreSymbol.Kind(rawValue: lib.symbol_get_kind(symbol).rawValue)!
         let symbolSubKind = IndexStoreSymbol.SubKind(rawValue: lib.symbol_get_subkind(symbol).rawValue)!
         let symbolUsr = lib.symbol_get_usr(symbol).toSwiftString()
         let symbolName = lib.symbol_get_name(symbol).toSwiftString()
-        let symbolLanguage = IndexStoreSymbol.Language(rawValue: lib.symbol_get_language(symbol).rawValue)!
+        let symbolLanguage = IndexStoreSymbol.Language(rawValue: language ?? lib.symbol_get_language(symbol).rawValue)!
         return IndexStoreSymbol(
             usr: symbolUsr, name: symbolName,
             kind: symbolKind, subKind: symbolSubKind,
@@ -312,11 +334,20 @@ public final class IndexStore {
         from occurrence: indexstore_occurrence_t?,
         recordPath: String?,
         isSystem: Bool,
+        language: UInt32?,
         lib: LibIndexStore
-    ) -> IndexStoreOccurrence {
+    ) -> IndexStoreOccurrence? {
+        let symbol = lib.occurrence_get_symbol(occurrence)
+        let symbolLanguage = lib.symbol_get_language(symbol).rawValue
+
+        if let language, language != symbolLanguage {
+            return nil
+        }
+
         let symbolRoles = IndexStoreOccurrence.Role(rawValue: lib.occurrence_get_roles(occurrence))
         let sym = IndexStore.createSymbol(
-            from: lib.occurrence_get_symbol(occurrence),
+            from: symbol,
+            language: language,
             lib: lib
         )
         var line: UInt32 = 0
@@ -365,10 +396,7 @@ extension indexstore_string_ref_t {
     fileprivate func toSwiftString() -> String? {
         guard data != nil else { return nil }
         return String(
-            bytesNoCopy: UnsafeMutableRawPointer(mutating: data),
-            length: length,
-            encoding: .utf8,
-            freeWhenDone: false
-        )!
+            data: Data(bytesNoCopy: UnsafeMutableRawPointer(mutating: data), count: length, deallocator: .none),
+            encoding: .utf8)
     }
 }

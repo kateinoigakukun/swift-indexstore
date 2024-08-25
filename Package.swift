@@ -1,9 +1,10 @@
-// swift-tools-version:5.2
+// swift-tools-version:5.8
 
 import PackageDescription
 
 let package = Package(
     name: "SwiftIndexStore",
+    platforms: [.macOS(.v13)],
     products: [
         .library(
             name: "SwiftIndexStore",
@@ -16,7 +17,7 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-argument-parser", .upToNextMajor(from: "1.0.0")),
     ],
     targets: [
-        .target(
+        .executableTarget(
             name: "IndexDumpTool",
             dependencies: [
                 .target(name: "SwiftIndexStore"),

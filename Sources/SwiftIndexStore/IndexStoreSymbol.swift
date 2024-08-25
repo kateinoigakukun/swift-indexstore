@@ -1,7 +1,6 @@
 import _CIndexStore
 
 public struct IndexStoreSymbol {
-
     public enum Kind: UInt32 {
         case unknown = 0
         case module = 1
@@ -30,6 +29,7 @@ public struct IndexStoreSymbol {
         case conversionFunction = 24
         case parameter = 25
         case using = 26
+        case concept = 27
         case commentTag = 1000
     }
 
@@ -41,6 +41,7 @@ public struct IndexStoreSymbol {
         case accessorSetter = 4
         case usingTypeName = 5
         case usingValue = 6
+        case usingEnum = 7
 
         case swiftAccessorWillSet = 1000
         case swiftAccessorDidSet = 1001
@@ -58,6 +59,7 @@ public struct IndexStoreSymbol {
         case swiftGenericTypeParam = 1013
         case swiftAccessorRead = 1014
         case swiftAccessorModify = 1015
+        case swiftAccessorInit = 1016
     }
 
     public struct Property: OptionSet, Hashable, OptionSetDisplayable, CustomStringConvertible {
@@ -72,6 +74,7 @@ public struct IndexStoreSymbol {
         public static let gkinspectable = Property(rawValue: INDEXSTORE_SYMBOL_PROPERTY_GKINSPECTABLE)
         public static let local = Property(rawValue: INDEXSTORE_SYMBOL_PROPERTY_LOCAL)
         public static let protocolInterface = Property(rawValue: INDEXSTORE_SYMBOL_PROPERTY_PROTOCOL_INTERFACE)
+        public static let swiftAsync = Property(rawValue: INDEXSTORE_SYMBOL_PROPERTY_SWIFT_ASYNC)
 
         public init(rawValue: UInt32) {
             self.rawValue = rawValue
@@ -90,7 +93,8 @@ public struct IndexStoreSymbol {
             (.ibOutletCollection, "ibOutletCollection"),
             (.gkinspectable, "gkinspectable"),
             (.local, "local"),
-            (.protocolInterface, "protocolInterface")
+            (.protocolInterface, "protocolInterface"),
+            (.swiftAsync, "swiftAsync")
         ]
 
         public var description: String {
